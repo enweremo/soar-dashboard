@@ -1,82 +1,59 @@
 body {
-  font-family: Arial, sans-serif;
   margin: 0;
-  background: linear-gradient(to right, #c2e9fb, #a1c4fd);
-  color: #033b4a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #cfe9f5, #a6e3f2);
+  color: #003e3e;
 }
 
 .container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: auto;
+  padding: 30px;
+  text-align: center;
 }
 
 h1 {
-  text-align: center;
-  color: #004d40;
+  margin-bottom: 20px;
+  font-size: 2rem;
+  color: #004b4b;
 }
 
 .controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
   margin-bottom: 20px;
 }
 
-.controls input, .controls select, .controls button {
-  padding: 8px;
-  font-size: 14px;
+input, select, button {
+  margin: 0 5px;
+  padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid #999;
+  border: 1px solid #ccc;
 }
 
 .tabs {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
-.tab-button {
-  padding: 10px;
-  font-weight: bold;
-  border-radius: 6px;
+.tab-btn {
+  margin: 0 5px;
+  padding: 10px 16px;
   border: none;
-  background-color: #e0f2f1;
+  border-radius: 6px;
+  font-weight: bold;
   cursor: pointer;
+  background-color: #e0f7fa;
 }
 
-.tab-button.active {
-  background-color: #00695c;
+.tab-btn.active {
+  background-color: #00796b;
   color: white;
 }
 
-.chart-container {
+.chart-section {
   display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  margin-bottom: 30px;
-}
-
-canvas {
-  max-width: 48%;
-  max-height: 400px;
-}
-
-.card-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 15px;
-  max-width: 250px;
-  word-wrap: break-word;
-  font-size: 14px;
+.chart-container {
+  width: 500px;
+  height: 350px;
 }
