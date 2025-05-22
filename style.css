@@ -1,59 +1,65 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(to right, #cfe9f5, #a6e3f2);
-  color: #003e3e;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #cceaff, #a3e4f8);
+  color: #003333;
 }
 
 .container {
-  padding: 30px;
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
   text-align: center;
 }
 
-h1 {
-  margin-bottom: 20px;
-  font-size: 2rem;
-  color: #004b4b;
-}
-
 .controls {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 
-input, select, button {
-  margin: 0 5px;
-  padding: 8px 12px;
-  border-radius: 6px;
+.controls input,
+.controls select,
+.controls button {
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 5px;
   border: 1px solid #ccc;
 }
 
 .tabs {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .tab-btn {
-  margin: 0 5px;
-  padding: 10px 16px;
+  background: #e6faff;
   border: none;
-  border-radius: 6px;
+  padding: 10px 15px;
+  margin: 0 5px;
   font-weight: bold;
+  border-radius: 6px;
   cursor: pointer;
-  background-color: #e0f7fa;
+  transition: background 0.2s;
 }
 
-.tab-btn.active {
-  background-color: #00796b;
+.tab-btn.active,
+.tab-btn:hover {
+  background-color: #008080;
   color: white;
 }
 
-.chart-section {
+.charts {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 20px;
 }
 
-.chart-container {
-  width: 500px;
-  height: 350px;
+canvas {
+  flex: 1 1 45%;
+  min-width: 300px;
+  max-width: 500px;
+  height: 400px;
 }

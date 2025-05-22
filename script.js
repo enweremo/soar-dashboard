@@ -1,53 +1,61 @@
-const API_URL = "https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data";
+const apiUrl = "https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data";
 let currentTab = "threats";
-let allData = {};
 
-const barChartCtx = document.getElementById("barChart").getContext("2d");
-const pieChartCtx = document.getElementById("pieChart").getContext("2d");
-let barChart, pieChart;
+document.getElementById("daysSelect").addEventListener("change", fetchData);
+document.getElementById("filterInput").addEventListener("input", updateCharts);
+document.getElementById("autoRefresh").addEventListener("change", autoRefreshToggle);
+
+let chartData = { threats: [], remediations: [], blocked_ips: [] };
+let barChart, pieChart, refreshInterval;
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-  document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add("active");
+  event.target.classList.add("active");
   updateCharts();
 }
 
+function autoRefreshToggle() {
+  if (document.getElementById("autoRefresh").checked) {
+    refreshInterval = setInterval(fetchData, 60000);
+  } else {
+    clearInterval(refreshInterval);
+  }
+}
+
 function fetchData() {
-  const days = document.getElementById("timeRange").value;
-  fetch(`${API_URL}?days=${days}`)
+  const days = document.getElementById("daysSelect").value;
+  fetch(`${apiUrl}?days=${days}`)
     .then(res => res.json())
     .then(data => {
-      allData = data;
+      chartData = data;
       updateCharts();
-    });
+    })
+    .catch(console.error);
 }
 
 function updateCharts() {
-  const raw = allData[currentTab] || [];
-  const filter = document.getElementById("filter").value.toLowerCase();
-  const items = raw.filter(entry =>
-    Object.values(entry).some(value => String(value).toLowerCase().includes(filter))
-  );
+  const dataSet = chartData[currentTab] || [];
+  const filter = document.getElementById("filterInput").value.toLowerCase();
+  const filtered = dataSet.filter(item => JSON.stringify(item).toLowerCase().includes(filter));
 
-  const labelKey = currentTab === "threats" ? "ActionType" :
-                   currentTab === "remediations" ? "event_type" : "ip_address";
-
-  const counts = items.reduce((acc, item) => {
-    const key = item[labelKey] || "Unknown";
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
+  const counts = {};
+  filtered.forEach(item => {
+    const type = item.event_type || item.reason || item.country || "Unknown";
+    counts[type] = (counts[type] || 0) + 1;
+  });
 
   const labels = Object.keys(counts);
   const values = Object.values(counts);
-
-  const colors = labels.map((_, i) => `hsl(${i * 60 % 360}, 60%, 50%)`);
+  const colors = labels.map((_, i) => `hsl(${i * 45}, 70%, 55%)`);
 
   if (barChart) barChart.destroy();
   if (pieChart) pieChart.destroy();
 
-  barChart = new Chart(barChartCtx, {
+  const ctxBar = document.getElementById("barChart").getContext("2d");
+  const ctxPie = document.getElementById("pieChart").getContext("2d");
+
+  barChart = new Chart(ctxBar, {
     type: "bar",
     data: {
       labels,
@@ -58,54 +66,54 @@ function updateCharts() {
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "Type" },
+          ticks: { maxRotation: 90, minRotation: 90 }
+        },
+        y: {
+          title: { display: true, text: "Number of Events" },
+          beginAtZero: true
+        }
+      }
     }
   });
 
-  pieChart = new Chart(pieChartCtx, {
+  pieChart = new Chart(ctxPie, {
     type: "pie",
     data: {
-      labels,
+      labels: labels.map((l, i) => `${l} (${values[i]}, ${((values[i] / values.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)`),
       datasets: [{
         data: values,
         backgroundColor: colors
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false
+      plugins: {
+        legend: { position: "right" }
+      }
     }
   });
 }
 
 function downloadCSV() {
-  const raw = allData[currentTab] || [];
-  if (raw.length === 0) return alert("No data to export.");
+  const rows = chartData[currentTab];
+  if (!rows.length) return;
 
-  const headers = Object.keys(raw[0]);
-  const rows = raw.map(row => headers.map(h => `"${row[h] || ""}"`).join(","));
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(","),
+    ...rows.map(row => headers.map(h => `"${row[h] ?? ""}"`).join(","))
+  ].join("\n");
 
-  const csv = [headers.join(","), ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = `${currentTab}.csv`;
-  link.click();
-
-  URL.revokeObjectURL(url);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentTab}_${Date.now()}.csv`;
+  a.click();
 }
-
-document.getElementById("filter").addEventListener("input", updateCharts);
-document.getElementById("timeRange").addEventListener("change", fetchData);
-document.getElementById("autoRefresh").addEventListener("change", function () {
-  if (this.checked) {
-    window.refreshInterval = setInterval(fetchData, 60000);
-  } else {
-    clearInterval(window.refreshInterval);
-  }
-});
 
 fetchData();
