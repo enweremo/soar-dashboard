@@ -1,102 +1,128 @@
-const API_URL = 'https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data';
-const filterInput = document.getElementById('filterInput');
-const daySelect = document.getElementById('daySelect');
-const cardList = document.getElementById('cardList');
-const barChart = document.getElementById('barChart');
-const pieChart = document.getElementById('pieChart');
-const tabButtons = document.querySelectorAll('.tab');
-const downloadBtn = document.getElementById('downloadBtn');
-const autoRefreshToggle = document.getElementById('autoRefresh');
+const apiUrl = "https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data";
+let rawData = {};
 
-let fullData = { threats: [], remediations: [], blocked_ips: [] };
-let currentTab = 'threats';
-let currentData = [];
-let chartObjects = [];
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("timeFilter").addEventListener("change", fetchAndRender);
+  document.getElementById("search").addEventListener("input", renderCards);
+  document.getElementById("downloadCsv").addEventListener("click", downloadCSV);
+  document.querySelectorAll(".tab-button").forEach(btn =>
+    btn.addEventListener("click", switchTab)
+  );
+  document.getElementById("autoRefresh").addEventListener("change", toggleAutoRefresh);
 
-function fetchData(days = 7) {
-  fetch(`${API_URL}?days=${days}`)
+  fetchAndRender();
+});
+
+let activeTab = "threats";
+let refreshInterval;
+
+function toggleAutoRefresh() {
+  if (document.getElementById("autoRefresh").checked) {
+    refreshInterval = setInterval(fetchAndRender, 60000);
+  } else {
+    clearInterval(refreshInterval);
+  }
+}
+
+function switchTab(e) {
+  document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+  e.target.classList.add("active");
+  activeTab = e.target.dataset.tab;
+  renderCharts();
+  renderCards();
+}
+
+function fetchAndRender() {
+  const days = document.getElementById("timeFilter").value;
+  fetch(`${apiUrl}?days=${days}`)
     .then(res => res.json())
     .then(data => {
-      fullData = data;
-      renderTab();
+      rawData = data;
+      renderCharts();
+      renderCards();
+    })
+    .catch(err => console.error("Failed to load API:", err));
+}
+
+function renderCharts() {
+  const dataset = rawData[activeTab] || [];
+
+  const labels = {};
+  dataset.forEach(item => {
+    const key = item.event_type || item.country || "Unknown";
+    labels[key] = (labels[key] || 0) + 1;
+  });
+
+  const keys = Object.keys(labels);
+  const values = Object.values(labels);
+
+  const barCtx = document.getElementById("barChart").getContext("2d");
+  const pieCtx = document.getElementById("pieChart").getContext("2d");
+
+  if (window.barChart) window.barChart.destroy();
+  if (window.pieChart) window.pieChart.destroy();
+
+  window.barChart = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels: keys,
+      datasets: [{
+        label: "Count",
+        data: values
+      }]
+    }
+  });
+
+  window.pieChart = new Chart(pieCtx, {
+    type: "pie",
+    data: {
+      labels: keys,
+      datasets: [{
+        data: values
+      }]
+    }
+  });
+}
+
+function renderCards() {
+  const container = document.getElementById("cards");
+  const search = document.getElementById("search").value.toLowerCase();
+  const dataset = rawData[activeTab] || [];
+
+  container.innerHTML = "";
+
+  dataset
+    .filter(item =>
+      Object.values(item).some(val =>
+        String(val).toLowerCase().includes(search)
+      )
+    )
+    .forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = Object.entries(item)
+        .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+        .join("<br>");
+      container.appendChild(card);
     });
 }
 
-function renderTab() {
-  const keyword = filterInput.value.toLowerCase();
-  currentData = (fullData[currentTab] || []).filter(item =>
-    Object.values(item).some(val => String(val).toLowerCase().includes(keyword))
-  );
+function downloadCSV() {
+  const dataset = rawData[activeTab] || [];
+  if (dataset.length === 0) return;
 
-  // Render cards
-  cardList.innerHTML = '';
-  currentData.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = Object.entries(item).map(([k, v]) =>
-      `<p><strong>${k}:</strong> ${v}</p>`
-    ).join('');
-    cardList.appendChild(div);
-  });
+  const keys = Object.keys(dataset[0]);
+  const csv = [
+    keys.join(","),
+    ...dataset.map(row => keys.map(k => JSON.stringify(row[k] || "")).join(","))
+  ].join("\n");
 
-  // Render charts
-  chartObjects.forEach(chart => chart.destroy());
-  const types = {}, countries = {};
-  currentData.forEach(d => {
-    const type = d.threat_type || d.event_type || d.reason || 'Other';
-    types[type] = (types[type] || 0) + 1;
-    const country = d.country || 'Unknown';
-    countries[country] = (countries[country] || 0) + 1;
-  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
 
-  chartObjects[0] = new Chart(barChart, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(types),
-      datasets: [{ label: 'Count', data: Object.values(types), backgroundColor: '#00796b' }]
-    }
-  });
-
-  chartObjects[1] = new Chart(pieChart, {
-    type: 'pie',
-    data: {
-      labels: Object.keys(countries),
-      datasets: [{ data: Object.values(countries), backgroundColor: ['#1abc9c','#f39c12','#e74c3c','#3498db','#9b59b6'] }]
-    }
-  });
+  a.href = url;
+  a.download = `${activeTab}_export.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
-
-// Download CSV
-downloadBtn.addEventListener('click', () => {
-  const csv = [Object.keys(currentData[0] || {}).join(',')];
-  currentData.forEach(row => {
-    csv.push(Object.values(row).join(','));
-  });
-  const blob = new Blob([csv.join('\\n')], { type: 'text/csv' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${currentTab}_data.csv`;
-  link.click();
-});
-
-// Events
-filterInput.addEventListener('input', renderTab);
-daySelect.addEventListener('change', () => fetchData(daySelect.value));
-tabButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelector('.tab.active').classList.remove('active');
-    btn.classList.add('active');
-    currentTab = btn.dataset.tab;
-    renderTab();
-  });
-});
-autoRefreshToggle.addEventListener('change', () => {
-  if (autoRefreshToggle.checked) {
-    autoRefreshToggle.interval = setInterval(() => fetchData(daySelect.value), 60000);
-  } else {
-    clearInterval(autoRefreshToggle.interval);
-  }
-});
-
-// Initial load
-fetchData(daySelect.value);
