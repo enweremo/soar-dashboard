@@ -4,38 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SOAR Threat Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header>
+  <div class="container">
     <h1>SOAR Threat Dashboard</h1>
     <div class="controls">
-      <input type="text" id="filterInput" placeholder="Filter..." />
-      <select id="daySelect">
+      <input type="text" id="search" placeholder="Filter..."/>
+      <select id="timeFilter">
         <option value="1">Today</option>
         <option value="7" selected>Last 7 Days</option>
         <option value="30">Last 30 Days</option>
       </select>
-      <button id="downloadBtn">Download CSV</button>
-      <label><input type="checkbox" id="autoRefresh"> Auto-Refresh</label>
+      <button id="downloadCsv">Download CSV</button>
+      <label><input type="checkbox" id="autoRefresh"/> Auto-Refresh</label>
     </div>
-    <div class="tabs">
-      <button class="tab active" data-tab="threats">THREATS</button>
-      <button class="tab" data-tab="remediations">REMEDIATIONS</button>
-      <button class="tab" data-tab="blocked_ips">BLOCKED IPS</button>
-    </div>
-  </header>
 
-  <main>
-    <section class="chart-grid">
+    <div class="tabs">
+      <button class="tab-button active" data-tab="threats">THREATS</button>
+      <button class="tab-button" data-tab="remediations">REMEDIATIONS</button>
+      <button class="tab-button" data-tab="blocked">BLOCKED IPS</button>
+    </div>
+
+    <div class="chart-container">
       <canvas id="barChart"></canvas>
       <canvas id="pieChart"></canvas>
-    </section>
+    </div>
 
-    <section id="cardList"></section>
-  </main>
+    <div id="cards" class="card-container"></div>
+  </div>
 
   <script src="script.js"></script>
 </body>
