@@ -1,94 +1,102 @@
-const API_BASE = 'https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data';
-const barChart = document.getElementById('barChart');
-const pieChart = document.getElementById('pieChart');
-const lineChart = document.getElementById('lineChart');
-const threatList = document.getElementById('threatList');
+const API_URL = 'https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data';
 const filterInput = document.getElementById('filterInput');
 const daySelect = document.getElementById('daySelect');
+const cardList = document.getElementById('cardList');
+const barChart = document.getElementById('barChart');
+const pieChart = document.getElementById('pieChart');
+const tabButtons = document.querySelectorAll('.tab');
+const downloadBtn = document.getElementById('downloadBtn');
+const autoRefreshToggle = document.getElementById('autoRefresh');
 
-let fullData = [];
+let fullData = { threats: [], remediations: [], blocked_ips: [] };
+let currentTab = 'threats';
+let currentData = [];
+let chartObjects = [];
 
 function fetchData(days = 7) {
-  fetch(`${API_BASE}?days=${days}`)
+  fetch(`${API_URL}?days=${days}`)
     .then(res => res.json())
     .then(data => {
-      fullData = data.threats || [];
-      renderThreats(fullData);
-      renderCharts(fullData);
+      fullData = data;
+      renderTab();
     });
 }
 
-function renderThreats(data) {
-  const filter = filterInput.value.toLowerCase();
-  const filtered = data.filter(t =>
-    t.ip_address.includes(filter) ||
-    t.threat_type.toLowerCase().includes(filter) ||
-    (t.country && t.country.toLowerCase().includes(filter))
+function renderTab() {
+  const keyword = filterInput.value.toLowerCase();
+  currentData = (fullData[currentTab] || []).filter(item =>
+    Object.values(item).some(val => String(val).toLowerCase().includes(keyword))
   );
 
-  threatList.innerHTML = '';
-  filtered.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <p><strong>Type:</strong> ${item.threat_type}</p>
-      <p><strong>IP:</strong> ${item.ip_address}</p>
-      <p><strong>Country:</strong> ${item.country || 'N/A'}</p>
-      <p><strong>Timestamp:</strong> ${new Date(item.timestamp).toLocaleString()}</p>
-      <p><strong>Status:</strong> ${item.status || 'N/A'}</p>
-    `;
-    threatList.appendChild(card);
+  // Render cards
+  cardList.innerHTML = '';
+  currentData.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = Object.entries(item).map(([k, v]) =>
+      `<p><strong>${k}:</strong> ${v}</p>`
+    ).join('');
+    cardList.appendChild(div);
+  });
+
+  // Render charts
+  chartObjects.forEach(chart => chart.destroy());
+  const types = {}, countries = {};
+  currentData.forEach(d => {
+    const type = d.threat_type || d.event_type || d.reason || 'Other';
+    types[type] = (types[type] || 0) + 1;
+    const country = d.country || 'Unknown';
+    countries[country] = (countries[country] || 0) + 1;
+  });
+
+  chartObjects[0] = new Chart(barChart, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(types),
+      datasets: [{ label: 'Count', data: Object.values(types), backgroundColor: '#00796b' }]
+    }
+  });
+
+  chartObjects[1] = new Chart(pieChart, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(countries),
+      datasets: [{ data: Object.values(countries), backgroundColor: ['#1abc9c','#f39c12','#e74c3c','#3498db','#9b59b6'] }]
+    }
   });
 }
 
-function renderCharts(data) {
-  const threatCounts = {};
-  const lineData = {};
-
-  data.forEach(item => {
-    const type = item.threat_type;
-    const time = new Date(item.timestamp).toLocaleDateString();
-
-    threatCounts[type] = (threatCounts[type] || 0) + 1;
-    lineData[time] = (lineData[time] || 0) + 1;
+// Download CSV
+downloadBtn.addEventListener('click', () => {
+  const csv = [Object.keys(currentData[0] || {}).join(',')];
+  currentData.forEach(row => {
+    csv.push(Object.values(row).join(','));
   });
-
-  const barData = {
-    labels: Object.keys(threatCounts),
-    datasets: [{
-      label: 'Threat Count',
-      data: Object.values(threatCounts),
-      backgroundColor: '#3498db'
-    }]
-  };
-
-  const pieData = {
-    labels: Object.keys(threatCounts),
-    datasets: [{
-      data: Object.values(threatCounts),
-      backgroundColor: ['#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#1abc9c']
-    }]
-  };
-
-  const lineDataObj = {
-    labels: Object.keys(lineData),
-    datasets: [{
-      label: 'Threats per Day',
-      data: Object.values(lineData),
-      fill: false,
-      borderColor: '#34495e',
-      tension: 0.3
-    }]
-  };
-
-  new Chart(barChart, { type: 'bar', data: barData });
-  new Chart(pieChart, { type: 'pie', data: pieData });
-  new Chart(lineChart, { type: 'line', data: lineDataObj });
-}
+  const blob = new Blob([csv.join('\\n')], { type: 'text/csv' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${currentTab}_data.csv`;
+  link.click();
+});
 
 // Events
-filterInput.addEventListener('input', () => renderThreats(fullData));
+filterInput.addEventListener('input', renderTab);
 daySelect.addEventListener('change', () => fetchData(daySelect.value));
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.tab.active').classList.remove('active');
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    renderTab();
+  });
+});
+autoRefreshToggle.addEventListener('change', () => {
+  if (autoRefreshToggle.checked) {
+    autoRefreshToggle.interval = setInterval(() => fetchData(daySelect.value), 60000);
+  } else {
+    clearInterval(autoRefreshToggle.interval);
+  }
+});
 
 // Initial load
 fetchData(daySelect.value);
