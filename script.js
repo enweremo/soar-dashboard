@@ -1,26 +1,18 @@
 const apiUrl = "https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data";
-let currentTab = "threats";
+let currentTab = "timeline";
+let chartData = { remediations: [], blocked_ips: [] };
+let barChart, pieChart, refreshInterval;
 
 document.getElementById("daysSelect").addEventListener("change", fetchData);
 document.getElementById("filterInput").addEventListener("input", updateCharts);
-document.getElementById("autoRefresh").addEventListener("change", autoRefreshToggle);
-
-let chartData = { threats: [], remediations: [], blocked_ips: [] };
-let barChart, pieChart, refreshInterval;
+document.getElementById("autoRefresh").addEventListener("change", toggleAutoRefresh);
+document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-  event.target.classList.add("active");
+  document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add("active");
   updateCharts();
-}
-
-function autoRefreshToggle() {
-  if (document.getElementById("autoRefresh").checked) {
-    refreshInterval = setInterval(fetchData, 60000);
-  } else {
-    clearInterval(refreshInterval);
-  }
 }
 
 function fetchData() {
@@ -34,26 +26,93 @@ function fetchData() {
     .catch(console.error);
 }
 
+function toggleAutoRefresh() {
+  if (document.getElementById("autoRefresh").checked) {
+    refreshInterval = setInterval(fetchData, 60000);
+  } else {
+    clearInterval(refreshInterval);
+  }
+}
+
 function updateCharts() {
-  const dataSet = chartData[currentTab] || [];
   const filter = document.getElementById("filterInput").value.toLowerCase();
-  const filtered = dataSet.filter(item => JSON.stringify(item).toLowerCase().includes(filter));
+  let dataset = chartData[currentTab] || [];
 
-  const counts = {};
-  filtered.forEach(item => {
-    const type = item.event_type || item.reason || item.country || "Unknown";
-    counts[type] = (counts[type] || 0) + 1;
-  });
+  // Filter by text
+  dataset = dataset.filter(row =>
+    Object.values(row).some(val =>
+      String(val).toLowerCase().includes(filter)
+    )
+  );
 
-  const labels = Object.keys(counts);
-  const values = Object.values(counts);
-  const colors = labels.map((_, i) => `hsl(${i * 45}, 70%, 55%)`);
+  const ctxBar = document.getElementById("barChart").getContext("2d");
+  const ctxPie = document.getElementById("pieChart").getContext("2d");
 
   if (barChart) barChart.destroy();
   if (pieChart) pieChart.destroy();
 
-  const ctxBar = document.getElementById("barChart").getContext("2d");
-  const ctxPie = document.getElementById("pieChart").getContext("2d");
+  // Handle TIMELINE tab separately
+  if (currentTab === "timeline") {
+    const counts = {};
+    dataset.forEach(item => {
+      const date = item.timestamp ? item.timestamp.substring(0, 10) : "Unknown";
+      if (date) counts[date] = (counts[date] || 0) + 1;
+    });
+    const labels = Object.keys(counts).sort();
+    const values = labels.map(date => counts[date]);
+
+    barChart = new Chart(ctxBar, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Threats per Day",
+          data: values,
+          borderColor: "teal",
+          backgroundColor: "lightcyan",
+          fill: true,
+          tension: 0.2
+        }]
+      },
+      options: {
+        plugins: { legend: { display: true } },
+        scales: {
+          x: { title: { display: true, text: "Date" } },
+          y: { beginAtZero: true, title: { display: true, text: "Count" } }
+        },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    pieChart = new Chart(ctxPie, {
+      type: "doughnut",
+      data: {
+        labels: ["Total Events"],
+        datasets: [{ data: [dataset.length], backgroundColor: ["#00acc1"] }]
+      },
+      options: {
+        plugins: {
+          legend: { position: "bottom" }
+        }
+      }
+    });
+
+    return;
+  }
+
+  // Other tabs: remediations or blocked_ips
+  const key = currentTab === "remediations" ? "event_type" : "ip_address";
+  const counts = {};
+  dataset.forEach(item => {
+    const label = item[key] || "Unknown";
+    counts[label] = (counts[label] || 0) + 1;
+  });
+
+  const labels = Object.keys(counts);
+  const values = labels.map(l => counts[l]);
+  const total = values.reduce((a, b) => a + b, 0);
+  const colors = labels.map((_, i) => `hsl(${i * 45}, 70%, 55%)`);
 
   barChart = new Chart(ctxBar, {
     type: "bar",
@@ -66,54 +125,55 @@ function updateCharts() {
       }]
     },
     options: {
-      plugins: {
-        legend: { display: false }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         x: {
           title: { display: true, text: "Type" },
-          ticks: { maxRotation: 90, minRotation: 90 }
+          ticks: { minRotation: 90, maxRotation: 90 }
         },
         y: {
           title: { display: true, text: "Number of Events" },
           beginAtZero: true
         }
-      }
+      },
+      responsive: true,
+      maintainAspectRatio: false
     }
   });
 
   pieChart = new Chart(ctxPie, {
     type: "pie",
     data: {
-      labels: labels.map((l, i) => `${l} (${values[i]}, ${((values[i] / values.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)`),
-      datasets: [{
-        data: values,
-        backgroundColor: colors
-      }]
+      labels: labels.map((l, i) => `${l} (${values[i]}, ${(values[i] / total * 100).toFixed(1)}%)`),
+      datasets: [{ data: values, backgroundColor: colors }]
     },
     options: {
       plugins: {
         legend: { position: "right" }
-      }
+      },
+      responsive: true,
+      maintainAspectRatio: false
     }
   });
 }
 
 function downloadCSV() {
-  const rows = chartData[currentTab];
-  if (!rows.length) return;
+  const rows = chartData[currentTab] || [];
+  if (!rows.length) return alert("No data to export");
 
   const headers = Object.keys(rows[0]);
   const csv = [
     headers.join(","),
-    ...rows.map(row => headers.map(h => `"${row[h] ?? ""}"`).join(","))
+    ...rows.map(row => headers.map(h => `"${(row[h] ?? "").toString().replace(/"/g, '""')}"`).join(","))
   ].join("\n");
 
   const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = `${currentTab}_${Date.now()}.csv`;
   a.click();
+  URL.revokeObjectURL(url);
 }
 
 fetchData();
