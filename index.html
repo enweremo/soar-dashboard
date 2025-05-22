@@ -12,12 +12,19 @@
   <header>
     <h1>SOAR Threat Dashboard</h1>
     <div class="controls">
-      <input type="text" id="filterInput" placeholder="Filter by IP, threat type, or country" />
+      <input type="text" id="filterInput" placeholder="Filter..." />
       <select id="daySelect">
         <option value="1">Today</option>
         <option value="7" selected>Last 7 Days</option>
         <option value="30">Last 30 Days</option>
       </select>
+      <button id="downloadBtn">Download CSV</button>
+      <label><input type="checkbox" id="autoRefresh"> Auto-Refresh</label>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="threats">THREATS</button>
+      <button class="tab" data-tab="remediations">REMEDIATIONS</button>
+      <button class="tab" data-tab="blocked_ips">BLOCKED IPS</button>
     </div>
   </header>
 
@@ -25,12 +32,9 @@
     <section class="chart-grid">
       <canvas id="barChart"></canvas>
       <canvas id="pieChart"></canvas>
-      <canvas id="lineChart"></canvas>
     </section>
 
-    <section id="threatList">
-      <!-- Threat cards will be inserted here -->
-    </section>
+    <section id="cardList"></section>
   </main>
 
   <script src="script.js"></script>
