@@ -55,7 +55,7 @@ function updateCharts() {
   if (currentTab === "timeline") {
     const counts = {};
     dataset.forEach(item => {
-      const date = item.timestamp ? item.timestamp.substring(0, 10) : "Unknown";
+      const date = (item.timestamp || item.CreatedAt || "").substring(0, 10);
       if (date) counts[date] = (counts[date] || 0) + 1;
     });
     const labels = Object.keys(counts).sort();
