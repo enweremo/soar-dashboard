@@ -17,11 +17,11 @@
         <option value="7" selected>Last 7 Days</option>
         <option value="30">Last 30 Days</option>
       </select>
-      <button onclick="downloadCSV()">Download CSV</button>
+      <button id="downloadBtn">Download CSV</button>
       <label><input type="checkbox" id="autoRefresh" /> Auto-Refresh</label>
     </div>
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('threats')">THREATS</button>
+      <button class="tab-btn active" onclick="switchTab('timeline')">TIMELINE</button>
       <button class="tab-btn" onclick="switchTab('remediations')">REMEDIATIONS</button>
       <button class="tab-btn" onclick="switchTab('blocked_ips')">BLOCKED IPS</button>
     </div>
