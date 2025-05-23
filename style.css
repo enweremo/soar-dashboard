@@ -1,69 +1,56 @@
 body {
-  margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #cceaff, #a3e4f8);
-  color: #003333;
+  margin: 20px;
+  background-color: #f4f6f8;
+  color: #333;
 }
 
-.container {
-  max-width: 1100px;
-  margin: auto;
-  padding: 20px;
+h1 {
   text-align: center;
+  margin-bottom: 10px;
+  color: #1a237e;
 }
 
 .controls {
   display: flex;
-  justify-content: center;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
 }
 
 .controls input,
 .controls select,
-.controls button {
-  padding: 8px;
-  font-size: 14px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+.controls button,
+.controls label {
+  font-size: 16px;
+  padding: 6px 10px;
 }
 
 .tabs {
-  margin-bottom: 15px;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 .tab-btn {
-  background: #e6faff;
+  background-color: #e0e0e0;
   border: none;
-  padding: 10px 15px;
+  padding: 10px 20px;
   margin: 0 5px;
   font-weight: bold;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s;
 }
 
-.tab-btn.active,
-.tab-btn:hover {
-  background-color: #008080;
+.tab-btn.active {
+  background-color: #3949ab;
   color: white;
 }
 
-.charts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-evenly;
-  gap: 20px;
-}
-
 .chart-container {
-  flex: 1 1 450px;
-  max-width: 500px;
-  height: 400px;
-}
-
-canvas {
-  width: 100% !important;
-  height: 100% !important;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto 40px auto;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
 }

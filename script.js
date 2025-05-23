@@ -1,18 +1,27 @@
 const apiUrl = "https://q2wy1am2oj.execute-api.us-east-1.amazonaws.com/prod/data";
 let currentTab = "timeline";
-let chartData = { remediations: [], blocked_ips: [] };
-let barChart, pieChart, refreshInterval;
+let chartData = {};
+let barChart, pieChart, autoRefreshInterval;
 
 document.getElementById("daysSelect").addEventListener("change", fetchData);
 document.getElementById("filterInput").addEventListener("input", updateCharts);
 document.getElementById("autoRefresh").addEventListener("change", toggleAutoRefresh);
-document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
+
+fetchData();
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
   document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add("active");
   updateCharts();
+}
+
+function toggleAutoRefresh() {
+  if (document.getElementById("autoRefresh").checked) {
+    autoRefreshInterval = setInterval(fetchData, 60000);
+  } else {
+    clearInterval(autoRefreshInterval);
+  }
 }
 
 function fetchData() {
@@ -22,44 +31,34 @@ function fetchData() {
     .then(data => {
       chartData = data;
       updateCharts();
-    })
-    .catch(console.error);
-}
-
-function toggleAutoRefresh() {
-  if (document.getElementById("autoRefresh").checked) {
-    refreshInterval = setInterval(fetchData, 60000);
-  } else {
-    clearInterval(refreshInterval);
-  }
+    });
 }
 
 function updateCharts() {
   const filter = document.getElementById("filterInput").value.toLowerCase();
-  let dataset = chartData[currentTab] || [];
+  let data = chartData[currentTab] || [];
 
-  // Filter by text
-  dataset = dataset.filter(row =>
-    Object.values(row).some(val =>
-      String(val).toLowerCase().includes(filter)
-    )
+  data = data.filter(item =>
+    Object.values(item).some(val => String(val).toLowerCase().includes(filter))
   );
 
   const ctxBar = document.getElementById("barChart").getContext("2d");
   const ctxPie = document.getElementById("pieChart").getContext("2d");
-
   if (barChart) barChart.destroy();
   if (pieChart) pieChart.destroy();
 
-  // Handle TIMELINE tab separately
   if (currentTab === "timeline") {
-    const counts = {};
-    dataset.forEach(item => {
-      const date = (item.timestamp || item.CreatedAt || "").substring(0, 10);
-      if (date) counts[date] = (counts[date] || 0) + 1;
+    const dateCount = {};
+    data.forEach(item => {
+      const ts = item.timestamp || item.CreatedAt || "";
+      const date = ts.substring(0, 10);
+      if (date) {
+        dateCount[date] = (dateCount[date] || 0) + 1;
+      }
     });
-    const labels = Object.keys(counts).sort();
-    const values = labels.map(date => counts[date]);
+
+    const labels = Object.keys(dateCount).sort();
+    const values = labels.map(l => dateCount[l]);
 
     barChart = new Chart(ctxBar, {
       type: "line",
@@ -68,17 +67,17 @@ function updateCharts() {
         datasets: [{
           label: "Threats per Day",
           data: values,
-          borderColor: "teal",
-          backgroundColor: "lightcyan",
+          borderColor: "#00acc1",
+          backgroundColor: "#b2ebf2",
           fill: true,
-          tension: 0.2
+          tension: 0.3
         }]
       },
       options: {
         plugins: { legend: { display: true } },
         scales: {
           x: { title: { display: true, text: "Date" } },
-          y: { beginAtZero: true, title: { display: true, text: "Count" } }
+          y: { title: { display: true, text: "Number of Events" }, beginAtZero: true }
         },
         responsive: true,
         maintainAspectRatio: false
@@ -89,30 +88,31 @@ function updateCharts() {
       type: "doughnut",
       data: {
         labels: ["Total Events"],
-        datasets: [{ data: [dataset.length], backgroundColor: ["#00acc1"] }]
+        datasets: [{
+          data: [data.length],
+          backgroundColor: ["#00acc1"]
+        }]
       },
       options: {
-        plugins: {
-          legend: { position: "bottom" }
-        }
+        plugins: { legend: { position: "bottom" } },
+        responsive: true,
+        maintainAspectRatio: false
       }
     });
-
     return;
   }
 
-  // Other tabs: remediations or blocked_ips
   const key = currentTab === "remediations" ? "event_type" : "ip_address";
-  const counts = {};
-  dataset.forEach(item => {
+  const countMap = {};
+  data.forEach(item => {
     const label = item[key] || "Unknown";
-    counts[label] = (counts[label] || 0) + 1;
+    countMap[label] = (countMap[label] || 0) + 1;
   });
 
-  const labels = Object.keys(counts);
-  const values = labels.map(l => counts[l]);
+  const labels = Object.keys(countMap);
+  const values = labels.map(l => countMap[l]);
   const total = values.reduce((a, b) => a + b, 0);
-  const colors = labels.map((_, i) => `hsl(${i * 45}, 70%, 55%)`);
+  const colors = labels.map((_, i) => `hsl(${i * 50 % 360}, 70%, 55%)`);
 
   barChart = new Chart(ctxBar, {
     type: "bar",
@@ -145,12 +145,13 @@ function updateCharts() {
     type: "pie",
     data: {
       labels: labels.map((l, i) => `${l} (${values[i]}, ${(values[i] / total * 100).toFixed(1)}%)`),
-      datasets: [{ data: values, backgroundColor: colors }]
+      datasets: [{
+        data: values,
+        backgroundColor: colors
+      }]
     },
     options: {
-      plugins: {
-        legend: { position: "right" }
-      },
+      plugins: { legend: { position: "right" } },
       responsive: true,
       maintainAspectRatio: false
     }
@@ -158,22 +159,20 @@ function updateCharts() {
 }
 
 function downloadCSV() {
-  const rows = chartData[currentTab] || [];
-  if (!rows.length) return alert("No data to export");
+  const data = chartData[currentTab] || [];
+  if (!data.length) return alert("No data to export.");
 
-  const headers = Object.keys(rows[0]);
+  const headers = Object.keys(data[0]);
   const csv = [
     headers.join(","),
-    ...rows.map(row => headers.map(h => `"${(row[h] ?? "").toString().replace(/"/g, '""')}"`).join(","))
+    ...data.map(row => headers.map(h => `"${(row[h] ?? "").toString().replace(/"/g, '""')}"`).join(","))
   ].join("\n");
 
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${currentTab}_${Date.now()}.csv`;
+  a.download = `${currentTab}_export_${Date.now()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
-
-fetchData();
