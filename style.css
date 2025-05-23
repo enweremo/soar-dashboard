@@ -52,18 +52,14 @@ body {
 
 .charts {
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
-  justify-content: space-evenly;
   gap: 20px;
 }
 
-.chart-container {
-  flex: 1 1 450px;
+canvas {
+  flex: 1 1 45%;
+  min-width: 300px;
   max-width: 500px;
   height: 400px;
-}
-
-canvas {
-  width: 100% !important;
-  height: 100% !important;
 }
