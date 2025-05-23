@@ -166,23 +166,6 @@ function updateCharts() {
 }
 
 
-  pieChart = new Chart(ctxPie, {
-    type: "pie",
-    data: {
-      labels: labels.map((l, i) => `${l} (${values[i]}, ${(values[i] / total * 100).toFixed(1)}%)`),
-      datasets: [{
-        data: values,
-        backgroundColor: colors
-      }]
-    },
-    options: {
-      plugins: { legend: { position: "right" } },
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-}
-
 function downloadCSV() {
   const data = chartData[currentTab] || [];
   if (!data.length) return alert("No data to export.");
