@@ -50,11 +50,9 @@ function updateCharts() {
   if (currentTab === "timeline") {
     const dateCount = {};
     data.forEach(item => {
-      const ts = item.timestamp || item.CreatedAt || "";
-      const date = ts.substring(0, 10);
-      if (date) {
-        dateCount[date] = (dateCount[date] || 0) + 1;
-      }
+      const ts = item.timestamp;
+      const date = ts ? ts.substring(0, 10) : null;
+      if (date) dateCount[date] = (dateCount[date] || 0) + 1;
     });
 
     const labels = Object.keys(dateCount).sort();
@@ -65,7 +63,7 @@ function updateCharts() {
       data: {
         labels,
         datasets: [{
-          label: "Threats per Day",
+          label: "Remediations per Day",
           data: values,
           borderColor: "#00acc1",
           backgroundColor: "#b2ebf2",
@@ -130,7 +128,13 @@ function updateCharts() {
       scales: {
         x: {
           title: { display: true, text: "Type" },
-          ticks: { minRotation: 90, maxRotation: 90 }
+          ticks: {
+            minRotation: 90,
+            maxRotation: 90,
+            callback: function (val, index) {
+              return labels[index].toUpperCase(); // Make labels bold-style
+            }
+          }
         },
         y: {
           title: { display: true, text: "Number of Events" },
@@ -141,6 +145,26 @@ function updateCharts() {
       maintainAspectRatio: false
     }
   });
+
+  pieChart = new Chart(ctxPie, {
+    type: "pie",
+    data: {
+      labels: labels.map((l, i) =>
+        `${l} - ${values[i]} (${(values[i] / total * 100).toFixed(1)}%)`
+      ),
+      datasets: [{
+        data: values,
+        backgroundColor: colors
+      }]
+    },
+    options: {
+      plugins: { legend: { position: "right" } },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
 
   pieChart = new Chart(ctxPie, {
     type: "pie",
