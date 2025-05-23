@@ -55,6 +55,7 @@ body {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 20px;
+  align-items: flex-start;
 }
 
 canvas {
@@ -62,4 +63,23 @@ canvas {
   min-width: 300px;
   max-width: 500px;
   height: 400px;
+}
+
+/* Axis titles and labels bold styling */
+.chartjs-render-monitor text {
+  font-weight: bold;
+  fill: #003333 !important;
+}
+
+/* Responsive stacking for smaller screens */
+@media (max-width: 768px) {
+  .charts {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  canvas {
+    max-width: 100%;
+    width: 100%;
+  }
 }
