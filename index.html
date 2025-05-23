@@ -3,42 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOAR Dashboard</title>
+  <title>SOAR Threat Dashboard</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Cloud-Based SOAR Dashboard</h1>
-  <div class="controls">
-    <label for="daysSelect">Range:</label>
-    <select id="daysSelect">
-      <option value="1">Today</option>
-      <option value="7" selected>Last 7 Days</option>
-      <option value="30">Last 30 Days</option>
-    </select>
-
-    <input type="text" id="filterInput" placeholder="Search keyword..." />
-    <button onclick="downloadCSV()">Download CSV</button>
-    <label>
-      <input type="checkbox" id="autoRefresh" />
-      Auto-Refresh
-    </label>
+  <div class="container">
+    <h1>SOAR Threat Dashboard</h1>
+    <div class="controls">
+      <input type="text" id="filterInput" placeholder="Filter..." />
+      <select id="daysSelect">
+        <option value="1">Last 1 Day</option>
+        <option value="7" selected>Last 7 Days</option>
+        <option value="30">Last 30 Days</option>
+      </select>
+      <button onclick="downloadCSV()">Download CSV</button>
+      <label><input type="checkbox" id="autoRefresh" /> Auto-Refresh</label>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('threats')">THREATS</button>
+      <button class="tab-btn" onclick="switchTab('remediations')">REMEDIATIONS</button>
+      <button class="tab-btn" onclick="switchTab('blocked_ips')">BLOCKED IPS</button>
+    </div>
+    <div class="charts">
+      <canvas id="barChart"></canvas>
+      <canvas id="pieChart"></canvas>
+    </div>
   </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('timeline')">TIMELINE</button>
-    <button class="tab-btn" onclick="switchTab('remediations')">REMEDIATIONS</button>
-    <button class="tab-btn" onclick="switchTab('blocked_ips')">BLOCKED IPS</button>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="barChart"></canvas>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="pieChart"></canvas>
-  </div>
-
   <script src="script.js"></script>
 </body>
 </html>
